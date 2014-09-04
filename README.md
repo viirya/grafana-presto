@@ -8,6 +8,8 @@
 Grafana is An open source, feature rich metrics dashboard and graph editor for
 Graphite, InfluxDB & OpenTSDB.
 
+Note: This is a fork of Grafana with Presto Database support.
+
 ![](http://grafana.org/assets/img/start_page_bg.png)
 
 ## Features
