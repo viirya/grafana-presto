@@ -4,14 +4,14 @@ define([
 function (_) {
   'use strict';
 
-  function InfluxSeries(options) {
+  function PrestoSeries(options) {
     this.seriesList = options.seriesList;
     this.alias = options.alias;
     this.groupByField = options.groupByField;
     this.annotation = options.annotation;
   }
 
-  var p = InfluxSeries.prototype;
+  var p = PrestoSeries.prototype;
 
   p.getTimeSeries = function() {
     var output = [];
@@ -123,5 +123,5 @@ function (_) {
     return name;
   };
 
-  return InfluxSeries;
+  return PrestoSeries;
 });

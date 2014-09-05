@@ -4,7 +4,7 @@ module.exports = function(config) {
     everything_but_less_to_temp: {
       cwd: '<%= srcDir %>',
       expand: true,
-      src: ['**/*', '!**/*.less', '!config.js'],
+      src: ['**/*', '!**/*.less', '!config.js', '.htaccess'],
       dest: '<%= tempDir %>'
     }
   };

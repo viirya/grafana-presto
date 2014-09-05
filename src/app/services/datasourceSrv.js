@@ -4,6 +4,7 @@ define([
   'config',
   './graphite/graphiteDatasource',
   './influxdb/influxdbDatasource',
+  './prestodb/prestodbDatasource',
   './opentsdb/opentsdbDatasource',
   './elasticsearch/es-datasource',
 ],
@@ -63,6 +64,9 @@ function (angular, _, config) {
         break;
       case 'influxdb':
         Datasource = $injector.get('InfluxDatasource');
+        break;
+      case 'prestodb':
+        Datasource = $injector.get('PrestoDatasource');
         break;
       case 'opentsdb':
         Datasource = $injector.get('OpenTSDBDatasource');

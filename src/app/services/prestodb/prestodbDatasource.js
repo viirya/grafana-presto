@@ -10,11 +10,11 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
 
   var module = angular.module('grafana.services');
 
-  module.factory('InfluxDatasource', function($q, $http, templateSrv) {
+  module.factory('PrestoDatasource', function($q, $http, templateSrv) {
 
-    function InfluxDatasource(datasource) {
-      this.type = 'influxDB';
-      this.editorSrc = 'app/partials/influxdb/editor.html';
+    function PrestoDatasource(datasource) {
+      this.type = 'prestoDB';
+      this.editorSrc = 'app/partials/prestodb/editor.html';
       this.urls = datasource.urls;
       this.username = datasource.username;
       this.password = datasource.password;
@@ -29,10 +29,10 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       this.grafanaDB = datasource.grafanaDB;
       this.supportAnnotations = true;
       this.supportMetrics = true;
-      this.annotationEditorSrc = 'app/partials/influxdb/annotation_editor.html';
+      this.annotationEditorSrc = 'app/partials/prestodb/annotation_editor.html';
     }
 
-    InfluxDatasource.prototype.query = function(options) {
+    PrestoDatasource.prototype.query = function(options) {
       var timeFilter = getTimeFilter(options);
 
       var promises = _.map(options.targets, function(target) {
@@ -41,7 +41,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
         }
 
         // build query
-        var queryBuilder = new InfluxQueryBuilder(target);
+        var queryBuilder = new PrestoQueryBuilder(target);
         var query = queryBuilder.build();
 
         // replace grafana variables
@@ -53,7 +53,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
 
         var alias = target.alias ? templateSrv.replace(target.alias) : '';
 
-        var handleResponse = _.partial(handleInfluxQueryResponse, alias, queryBuilder.groupByField);
+        var handleResponse = _.partial(handlePrestoQueryResponse, alias, queryBuilder.groupByField);
         return this._seriesQuery(query).then(handleResponse);
 
       }, this);
@@ -63,17 +63,17 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       });
     };
 
-    InfluxDatasource.prototype.annotationQuery = function(annotation, rangeUnparsed) {
+    PrestoDatasource.prototype.annotationQuery = function(annotation, rangeUnparsed) {
       var timeFilter = getTimeFilter({ range: rangeUnparsed });
       var query = annotation.query.replace('$timeFilter', timeFilter);
       query = templateSrv.replace(annotation.query);
 
       return this._seriesQuery(query).then(function(results) {
-        return new InfluxSeries({ seriesList: results, annotation: annotation }).getAnnotations();
+        return new PrestoSeries({ seriesList: results, annotation: annotation }).getAnnotations();
       });
     };
 
-    InfluxDatasource.prototype.listColumns = function(seriesName) {
+    PrestoDatasource.prototype.listColumns = function(seriesName) {
       var interpolated = templateSrv.replace(seriesName);
       if (interpolated[0] !== '/') {
         interpolated = '/' + interpolated + '/';
@@ -87,26 +87,26 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       });
     };
 
-    InfluxDatasource.prototype.listSeries = function() {
+    PrestoDatasource.prototype.listSeries = function() {
       return this._seriesQuery('list series').then(function(data) {
         if (!data || data.length === 0) {
           return [];
         }
-        // influxdb >= 1.8
+        // prestodb >= 1.8
         if (data[0].points.length > 0) {
           return _.map(data[0].points, function(point) {
             return point[1];
           });
         }
-        else { // influxdb <= 1.7
+        else { // prestodb <= 1.7
           return _.map(data, function(series) {
-            return series.name; // influxdb < 1.7
+            return series.name; // prestodb < 1.7
           });
         }
       });
     };
 
-    InfluxDatasource.prototype.metricFindQuery = function (query) {
+    PrestoDatasource.prototype.metricFindQuery = function (query) {
       var interpolated;
       try {
         interpolated = templateSrv.replace(query);
@@ -129,7 +129,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
     function retry(deferred, callback, delay) {
       return callback().then(undefined, function(reason) {
         if (reason.status !== 0 || reason.status >= 300) {
-          reason.message = 'InfluxDB Error: <br/>' + reason.data;
+          reason.message = 'PrestoDB Error: <br/>' + reason.data;
           deferred.reject(reason);
         }
         else {
@@ -140,14 +140,14 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       });
     }
 
-    InfluxDatasource.prototype._seriesQuery = function(query) {
-      return this._influxRequest('GET', '/series', {
+    PrestoDatasource.prototype._seriesQuery = function(query) {
+      return this._prestoRequest('GET', '/series', {
         q: query,
         time_precision: 's',
       });
     };
 
-    InfluxDatasource.prototype._influxRequest = function(method, url, data) {
+    PrestoDatasource.prototype._prestoRequest = function(method, url, data) {
       var _this = this;
       var deferred = $q.defer();
 
@@ -170,7 +170,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
           url:    currentUrl + url,
           params: params,
           data:   data,
-          inspect: { type: 'influxdb' },
+          inspect: { type: 'prestodb' },
         };
 
         return $http(options).success(function (data) {
@@ -181,7 +181,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       return deferred.promise;
     };
 
-    InfluxDatasource.prototype.saveDashboard = function(dashboard) {
+    PrestoDatasource.prototype.saveDashboard = function(dashboard) {
       var tags = dashboard.tags.join(',');
       var title = dashboard.title;
       var temp = dashboard.temp;
@@ -197,29 +197,29 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
         return this._saveDashboardTemp(data, title);
       }
       else {
-        return this._influxRequest('POST', '/series', data).then(function() {
+        return this._prestoRequest('POST', '/series', data).then(function() {
           return { title: title, url: '/dashboard/db/' + title };
         }, function(err) {
-          throw 'Failed to save dashboard to InfluxDB: ' + err.data;
+          throw 'Failed to save dashboard to PrestoDB: ' + err.data;
         });
       }
     };
 
-    InfluxDatasource.prototype._saveDashboardTemp = function(data, title) {
+    PrestoDatasource.prototype._saveDashboardTemp = function(data, title) {
       data[0].name = 'grafana.temp_dashboard_' + btoa(title);
       data[0].columns.push('expires');
       data[0].points[0].push(this._getTempDashboardExpiresDate());
 
-      return this._influxRequest('POST', '/series', data).then(function() {
+      return this._prestoRequest('POST', '/series', data).then(function() {
         var baseUrl = window.location.href.replace(window.location.hash,'');
         var url = baseUrl + "#dashboard/temp/" + title;
         return { title: title, url: url };
       }, function(err) {
-        throw 'Failed to save shared dashboard to InfluxDB: ' + err.data;
+        throw 'Failed to save shared dashboard to PrestoDB: ' + err.data;
       });
     };
 
-    InfluxDatasource.prototype._getTempDashboardExpiresDate = function() {
+    PrestoDatasource.prototype._getTempDashboardExpiresDate = function() {
       var ttlLength = this.saveTempTTL.substring(0, this.saveTempTTL.length - 1);
       var ttlTerm = this.saveTempTTL.substring(this.saveTempTTL.length - 1, this.saveTempTTL.length).toLowerCase();
       var expires = Date.now();
@@ -239,7 +239,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       return expires;
     };
 
-    InfluxDatasource.prototype.getDashboard = function(id, isTemp) {
+    PrestoDatasource.prototype.getDashboard = function(id, isTemp) {
       var queryString = 'select dashboard from "grafana.dashboard_' + btoa(id) + '"';
 
       if (isTemp) {
@@ -260,7 +260,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       });
     };
 
-    InfluxDatasource.prototype.deleteDashboard = function(id) {
+    PrestoDatasource.prototype.deleteDashboard = function(id) {
       return this._seriesQuery('drop series "grafana.dashboard_' + btoa(id) + '"').then(function(results) {
         if (!results) {
           throw "Could not delete dashboard";
@@ -271,26 +271,26 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       });
     };
 
-    InfluxDatasource.prototype.searchDashboards = function(queryString) {
-      var influxQuery = 'select title, tags from /grafana.dashboard_.*/ where ';
+    PrestoDatasource.prototype.searchDashboards = function(queryString) {
+      var prestoQuery = 'select title, tags from /grafana.dashboard_.*/ where ';
 
       var tagsOnly = queryString.indexOf('tags!:') === 0;
       if (tagsOnly) {
         var tagsQuery = queryString.substring(6, queryString.length);
-        influxQuery = influxQuery + 'tags =~ /.*' + tagsQuery + '.*/i';
+        prestoQuery = prestoQuery + 'tags =~ /.*' + tagsQuery + '.*/i';
       }
       else {
         var titleOnly = queryString.indexOf('title:') === 0;
         if (titleOnly) {
           var titleQuery = queryString.substring(6, queryString.length);
-          influxQuery = influxQuery + ' title =~ /.*' + titleQuery + '.*/i';
+          prestoQuery = prestoQuery + ' title =~ /.*' + titleQuery + '.*/i';
         }
         else {
-          influxQuery = influxQuery + '(tags =~ /.*' + queryString + '.*/i or title =~ /.*' + queryString + '.*/i)';
+          prestoQuery = prestoQuery + '(tags =~ /.*' + queryString + '.*/i or title =~ /.*' + queryString + '.*/i)';
         }
       }
 
-      return this._seriesQuery(influxQuery).then(function(results) {
+      return this._seriesQuery(prestoQuery).then(function(results) {
         var hits = { dashboards: [], tags: [], tagsOnly: false };
 
         if (!results || !results.length) {
@@ -313,19 +313,19 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       });
     };
 
-    function handleInfluxQueryResponse(alias, groupByField, seriesList) {
-      var influxSeries = new InfluxSeries({
+    function handlePrestoQueryResponse(alias, groupByField, seriesList) {
+      var prestoSeries = new PrestoSeries({
         seriesList: seriesList,
         alias: alias,
         groupByField: groupByField
       });
 
-      return influxSeries.getTimeSeries();
+      return prestoSeries.getTimeSeries();
     }
 
     function getTimeFilter(options) {
-      var from = getInfluxTime(options.range.from);
-      var until = getInfluxTime(options.range.to);
+      var from = getPrestoTime(options.range.from);
+      var until = getPrestoTime(options.range.to);
 
       if (until === 'now()') {
         return 'time > now() - ' + from;
@@ -334,7 +334,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       return 'time > ' + from + ' and time < ' + until;
     }
 
-    function getInfluxTime(date) {
+    function getPrestoTime(date) {
       if (_.isString(date)) {
         if (date === 'now') {
           return 'now()';
@@ -353,7 +353,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       return (date.getTime() / 1000).toFixed(0) + 's';
     }
 
-    return InfluxDatasource;
+    return PrestoDatasource;
 
   });
 
