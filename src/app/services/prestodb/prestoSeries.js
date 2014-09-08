@@ -1,14 +1,19 @@
 define([
   'lodash',
+  'moment',
 ],
-function (_) {
+function (_, moment) {
   'use strict';
 
   function PrestoSeries(options) {
     this.seriesList = options.seriesList;
     this.alias = options.alias;
     this.groupByField = options.groupByField;
+    this.sinceDate = options.sinceDate;
+    this.pseudoNowDate = options.pseudoNowDate;
+    this.seriesName = options.alias;
     this.annotation = options.annotation;
+    this.intervalSeconds = options.intervalSeconds;
   }
 
   var p = PrestoSeries.prototype;
@@ -18,18 +23,17 @@ function (_) {
     var self = this;
     var i;
 
-    _.each(self.seriesList, function(series) {
-      var seriesName;
-      var timeCol = series.columns.indexOf('time');
+    _.each([self.seriesList], function(series) {
+      var timeCol = 0;
       var valueCol = 1;
       var groupByCol = -1;
 
       if (self.groupByField) {
-        groupByCol = series.columns.indexOf(self.groupByField);
+        groupByCol = series.Columns.indexOf(self.groupByField);
       }
 
       // find value column
-      _.each(series.columns, function(column, index) {
+      _.each(series.Columns, function(column, index) {
         if (column !== 'time' && column !== 'sequence_number' && column !== self.groupByField) {
           valueCol = index;
         }
@@ -38,28 +42,24 @@ function (_) {
       var groups = {};
 
       if (self.groupByField) {
-        groups = _.groupBy(series.points, function (point) {
+        groups = _.groupBy(series.Data, function (point) {
           return point[groupByCol];
         });
       }
       else {
-        groups[series.columns[valueCol]] = series.points;
+        groups[series.Columns[valueCol]] = series.Data;
       }
 
-      _.each(groups, function(groupPoints, key) {
+      _.each(groups, function(groupPoints) {
         var datapoints = [];
         for (i = 0; i < groupPoints.length; i++) {
           var metricValue = isNaN(groupPoints[i][valueCol]) ? null : groupPoints[i][valueCol];
-          datapoints[i] = [metricValue, groupPoints[i][timeCol]];
+          var timeValue = groupPoints[i][timeCol] * self.intervalSeconds + moment(self.sinceDate).unix();
+          timeValue += (moment().unix() - moment(self.pseudoNowDate).unix());
+          datapoints[i] = [metricValue, timeValue];
         }
 
-        seriesName = series.name + '.' + key;
-
-        if (self.alias) {
-          seriesName = self.createNameForSeries(series.name, key);
-        }
-
-        output.push({ target: seriesName, datapoints: datapoints });
+        output.push({ target: self.seriesName, datapoints: datapoints });
       });
     });
 

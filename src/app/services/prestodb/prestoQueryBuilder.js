@@ -19,12 +19,14 @@ function () {
     var seriesName = target.series;
 
     if(!seriesName.match('^/.*/')) {
-      seriesName = '"' + seriesName+ '"';
+      seriesName = '' + seriesName+ '';
     }
 
     if (target.groupby_field) {
       query += target.groupby_field + ', ';
     }
+
+    query +=  '$datetrunc as time, ';
 
     query +=  target.function + '(' + target.column + ')';
     query += ' from ' + seriesName + ' where $timeFilter';
@@ -33,7 +35,7 @@ function () {
       query += ' and ' + target.condition;
     }
 
-    query += ' group by time($interval)';
+    query += ' group by $interval';
 
     if (target.groupby_field) {
       query += ', ' + target.groupby_field;
@@ -44,7 +46,7 @@ function () {
       query += ' fill(' + target.fill + ')';
     }
 
-    query += " order asc";
+    //query += " order asc";
     target.query = query;
 
     return query;

@@ -2,10 +2,11 @@ define([
   'angular',
   'lodash',
   'kbn',
+  'moment',
   './prestoSeries',
   './prestoQueryBuilder'
 ],
-function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
+function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
   'use strict';
 
   var module = angular.module('grafana.services');
@@ -30,15 +31,23 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       this.supportAnnotations = true;
       this.supportMetrics = true;
       this.annotationEditorSrc = 'app/partials/prestodb/annotation_editor.html';
+
+      this.sinceDate = datasource.since;
+      this.timeField = datasource.time_field;
+      this.now = datasource.now;
+      this.key = datasource.key;
+      this.pseudonow = datasource.pseudonow;
     }
 
     PrestoDatasource.prototype.query = function(options) {
-      var timeFilter = getTimeFilter(options);
+      var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, options);
 
       var promises = _.map(options.targets, function(target) {
         if (target.hide || !((target.series && target.column) || target.query)) {
           return [];
         }
+
+        target.timefield = this.timeField;
 
         // build query
         var queryBuilder = new PrestoQueryBuilder(target);
@@ -46,14 +55,25 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
 
         // replace grafana variables
         query = query.replace('$timeFilter', timeFilter);
-        query = query.replace('$interval', (target.interval || options.interval));
+
+        var prestoInterval = getPrestoInterval(this.sinceDate, this.timeField, target.interval || options.interval);
+        var prestoIntervalState = prestoInterval[0];
+        var intervalSeconds = prestoInterval[1];
+
+        query = query.replace('$interval', prestoIntervalState);
+        query = query.replace('$datetrunc', prestoIntervalState);
+ 
+        query += " order by " + prestoIntervalState + " asc";
 
         // replace templated variables
         query = templateSrv.replace(query);
 
+        console.log("query: " + query);
+
         var alias = target.alias ? templateSrv.replace(target.alias) : '';
 
-        var handleResponse = _.partial(handlePrestoQueryResponse, alias, queryBuilder.groupByField);
+        var handleResponse = _.partial(handlePrestoQueryResponse, alias,
+          queryBuilder.groupByField, this.sinceDate, this.pseudonow, intervalSeconds);
         return this._seriesQuery(query).then(handleResponse);
 
       }, this);
@@ -64,7 +84,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
     };
 
     PrestoDatasource.prototype.annotationQuery = function(annotation, rangeUnparsed) {
-      var timeFilter = getTimeFilter({ range: rangeUnparsed });
+      var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, { range: rangeUnparsed });
       var query = annotation.query.replace('$timeFilter', timeFilter);
       query = templateSrv.replace(annotation.query);
 
@@ -88,7 +108,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
     };
 
     PrestoDatasource.prototype.listSeries = function() {
-      return this._seriesQuery('list series').then(function(data) {
+      return this._seriesQuery('show tables').then(function(data) {
         if (!data || data.length === 0) {
           return [];
         }
@@ -141,10 +161,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
     }
 
     PrestoDatasource.prototype._seriesQuery = function(query) {
-      return this._prestoRequest('GET', '/series', {
-        q: query,
-        time_precision: 's',
-      });
+      return this._prestoRequest('POST', '/', "query=" + query + ";&db=presto");
     };
 
     PrestoDatasource.prototype._prestoRequest = function(method, url, data) {
@@ -167,8 +184,7 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
 
         var options = {
           method: method,
-          url:    currentUrl + url,
-          params: params,
+          url:    currentUrl + url + _this.key,
           data:   data,
           inspect: { type: 'prestodb' },
         };
@@ -313,25 +329,103 @@ function (angular, _, kbn, PrestoSeries, PrestoQueryBuilder) {
       });
     };
 
-    function handlePrestoQueryResponse(alias, groupByField, seriesList) {
+    function handlePrestoQueryResponse(alias, groupByField, sinceDate, pseudoNowDate, intervalSeconds, seriesList) {
+      //console.log("handlePrestoQueryResponse");
+      //console.log(seriesList);
       var prestoSeries = new PrestoSeries({
         seriesList: seriesList,
         alias: alias,
-        groupByField: groupByField
+        groupByField: groupByField,
+        sinceDate: sinceDate,
+        pseudoNowDate: pseudoNowDate,
+        intervalSeconds: intervalSeconds,
       });
 
       return prestoSeries.getTimeSeries();
     }
 
-    function getTimeFilter(options) {
+    function getTimeFilter(timeField, nowStr, pseudoNowDate, options) {
       var from = getPrestoTime(options.range.from);
       var until = getPrestoTime(options.range.to);
 
       if (until === 'now()') {
-        return 'time > now() - ' + from;
+        from = getPrestoTimeDetails(from, nowStr);
+        return "date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')" + " > " + from;
       }
 
-      return 'time > ' + from + ' and time < ' + until;
+      var parsedFrom = parseIntervalString(from);
+      var parsedUntil = parseIntervalString(until);
+
+      parsedFrom[0] -= ((moment().unix() - moment(pseudoNowDate).unix()));
+      parsedUntil[0] -= ((moment().unix() - moment(pseudoNowDate).unix()));
+
+      // for GMT+0800
+      parsedFrom[0] += 8 * 60 * 60;
+      parsedUntil[0] += 8 * 60 * 60;
+
+      return "to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) > " + parsedFrom[0] +
+        " and to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) < " + parsedUntil[0];
+    }
+
+    function parseIntervalString(interval) {
+      var patt = new RegExp("(\\d*)(\\w)");
+      var res = patt.exec(interval);
+     
+      var unit_word = '';
+      switch (res[2]) {
+        case 's':
+          unit_word = 'second';
+          break;
+        case 'm':
+          unit_word = 'minute';
+          break;
+        case 'h':
+          unit_word = 'hour';
+          break;
+        case 'd':
+          unit_word = 'day';
+          break;
+      }
+      return [res[1], unit_word];
+    }
+
+    function getPrestoInterval(sinceDate, timeField, intervalStr) {
+
+      var interval = parseIntervalString(intervalStr);
+
+      var value = interval[0];
+      var unit_word = interval[1]; 
+
+      var intervalSeconds = 0;
+      switch (unit_word) {
+        case 'second':
+          intervalSeconds = value;
+          break;
+        case 'minute':
+          intervalSeconds = value * 60;
+          break;
+        case 'hour':
+          intervalSeconds = value * 60 * 60; 
+          break;
+        case 'day':
+          intervalSeconds = value * 60 * 60 * 24;
+          break;
+      }
+
+      return ["floor((to_unixtime(date_parse(" + timeField +
+             ", '%Y-%m-%e %H:%i:%s')) - to_unixtime(date_parse('" + sinceDate +
+             "', '%Y-%m-%e %H:%i:%s'))) / (" + intervalSeconds + "))", intervalSeconds];
+             //" + to_unixtime(date_parse('" + sinceDate + "', '%Y-%m-%e %H:%i:%s'))";
+    }
+
+    function getPrestoTimeDetails(fromDate, nowStr) {
+
+      var interval = parseIntervalString(fromDate);
+
+      var value = interval[0];
+      var unit_word = interval[1]; 
+      
+      return "date_add('" + unit_word + "', " + -value + ", " + nowStr + ")";
     }
 
     function getPrestoTime(date) {
