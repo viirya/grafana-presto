@@ -19,23 +19,19 @@ function (Settings) {
     */
 
     // InfluxDB example setup (the InfluxDB databases specified need to exist)
-    /*
+    
     datasources: {
-      influxdb: {
-        type: 'influxdb',
-        url: "http://my_influxdb_server:8086/db/database_name",
-        username: 'admin',
-        password: 'admin',
-      },
-      grafana: {
-        type: 'influxdb',
-        url: "http://my_influxdb_server:8086/db/grafana",
-        username: 'admin',
-        password: 'admin',
-        grafanaDB: true
+      prestodb: {
+        type: 'prestodb',
+        urls: ["http://my.presto.server.com:8080"],
+        key: "key",
+        since: "2014-04-01 00:00:00",
+        time_field: "play_time",
+        pseudonow: '2014-04-30 23:00:00',
+        now: "date_parse('2014-04-30 23:00:00', '%Y-%m-%e %H:%i:%s')",
       },
     },
-    */
+    
 
     // Graphite & Elasticsearch example setup
     /*
