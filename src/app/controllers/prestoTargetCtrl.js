@@ -13,7 +13,7 @@ function (angular) {
     $scope.init = function() {
       var target = $scope.target;
 
-      target.function = target.function || 'mean';
+      target.function = target.function || 'count';
       target.column = target.column || 'value';
 
       // backward compatible correction of schema
@@ -32,10 +32,9 @@ function (angular) {
       $scope.rawQuery = false;
 
       $scope.functions = [
-        'count', 'mean', 'sum', 'min',
-        'max', 'mode', 'distinct', 'median',
-        'derivative', 'stddev', 'first', 'last',
-        'difference'
+        'count', 'avg', 'sum', 'min',
+        'max', 'approx_distinct', 'stddev',
+        'stddev_pop', 'variance', 'var_pop'
       ];
 
       $scope.operators = ['=', '=~', '>', '<', '!~', '<>'];
