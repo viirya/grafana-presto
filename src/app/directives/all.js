@@ -18,5 +18,6 @@ define([
   './templateParamSelector',
   './graphiteSegment',
   './grafanaVersionCheck',
-  './influxdbFuncEditor'
+  './influxdbFuncEditor',
+  './prestodbFuncEditor',
 ], function () {});
