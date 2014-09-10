@@ -28,7 +28,7 @@ function (Settings) {
         since: "2014-04-01 00:00:00",
         time_field: "play_time",
         pseudonow: '2014-04-30 23:00:00',
-        now: "date_parse('2014-04-30 23:00:00', '%Y-%m-%e %H:%i:%s')",
+        timezone: 8,
       },
     },
     

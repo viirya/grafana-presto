@@ -34,13 +34,14 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
 
       this.sinceDate = datasource.since;
       this.timeField = datasource.time_field;
-      this.now = datasource.now;
       this.key = datasource.key;
-      this.pseudonow = datasource.pseudonow;
+      this.pseudonow = datasource.pseudonow ||  moment().format("YYYY-MM-DD hh:mm:ss");
+      this.now = "date_parse('" + this.pseudonow + "', '%Y-%m-%e %H:%i:%s')";
+      this.timezone = datasource.timezone;
     }
 
     PrestoDatasource.prototype.query = function(options) {
-      var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, options);
+      var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, this.timezone, options);
 
       var promises = _.map(options.targets, function(target) {
         if (target.hide || !((target.series && target.column) || target.query)) {
@@ -84,7 +85,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
     };
 
     PrestoDatasource.prototype.annotationQuery = function(annotation, rangeUnparsed) {
-      var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, { range: rangeUnparsed });
+      var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, this.timezone, { range: rangeUnparsed });
       var query = annotation.query.replace('$timeFilter', timeFilter);
       query = templateSrv.replace(annotation.query);
 
@@ -344,7 +345,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       return prestoSeries.getTimeSeries();
     }
 
-    function getTimeFilter(timeField, nowStr, pseudoNowDate, options) {
+    function getTimeFilter(timeField, nowStr, pseudoNowDate, timeZone, options) {
       var from = getPrestoTime(options.range.from);
       var until = getPrestoTime(options.range.to);
 
@@ -360,8 +361,8 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       parsedUntil[0] -= ((moment().unix() - moment(pseudoNowDate).unix()));
 
       // for GMT+0800
-      parsedFrom[0] += 8 * 60 * 60;
-      parsedUntil[0] += 8 * 60 * 60;
+      parsedFrom[0] += timeZone * 60 * 60;
+      parsedUntil[0] += timeZone * 60 * 60;
 
       return "to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) > " + parsedFrom[0] +
         " and to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) < " + parsedUntil[0];
