@@ -34,7 +34,8 @@ function (angular) {
       $scope.functions = [
         'count', 'avg', 'sum', 'min',
         'max', 'approx_distinct', 'stddev',
-        'stddev_pop', 'variance', 'var_pop'
+        'stddev_pop', 'variance', 'var_pop',
+        'approx_percentile'
       ];
 
       $scope.operators = ['=', '=~', '>', '<', '!~', '<>'];
