@@ -4,6 +4,7 @@
 @import "bootstrap-tagsinput.less";
 @import "tables_lists.less";
 @import "search.less";
+@import "panel.less";
 
 .hide-controls {
   padding: 0;
@@ -334,23 +335,22 @@ select.grafana-target-segment-input {
 ::-webkit-scrollbar-button:horizontal:increment:active { background-image: none; }
 ::-webkit-scrollbar-button:vertical:decrement:active { background-image: none; }
 ::-webkit-scrollbar-button:vertical:increment:active {background-image: none; }
-
-::-webkit-scrollbar-track-piece { background-color: grayDark; }
+::-webkit-scrollbar-track-piece { background-color: transparent; }
 
 ::-webkit-scrollbar-thumb:vertical {
   height: 50px;
-  background: -webkit-gradient(linear, left top, right top, color-stop(0%, #3a3a3a), color-stop(100%, #222222));
-  border: 1px solid #0d0d0d;
-  border-top: 1px solid #666666;
-  border-left: 1px solid #666666;
+  background: -webkit-gradient(linear, left top, right top, color-stop(0%, @scrollbarBackground), color-stop(100%, @scrollbarBackground2));
+  border: 1px solid @scrollbarBorder;
+  border-top: 1px solid @scrollbarBorder;
+  border-left: 1px solid @scrollbarBorder;
 }
 
 ::-webkit-scrollbar-thumb:horizontal {
   width: 50px;
-  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, #3a3a3a), color-stop(100%, #222222));
-  border: 1px solid #1f1f1f;
-  border-top: 1px solid #666666;
-  border-left: 1px solid #666666;
+  background: -webkit-gradient(linear, left top, left bottom, color-stop(0%, @scrollbarBackground), color-stop(100%, @scrollbarBackground2));
+  border: 1px solid @scrollbarBorder;
+  border-top: 1px solid @scrollbarBorder;
+  border-left: 1px solid @scrollbarBorder;
 }
 
 
@@ -479,4 +479,32 @@ select.grafana-target-segment-input {
   font-size: 80%;
   color: darken(@gray, 25%);
   a { color: darken(@gray, 25%); }
+}
+
+.template-variable {
+  color: @variable;
+}
+
+.grafana-info-box:before {
+  content: "\f05a";
+  font-family:'FontAwesome';
+  position: absolute;
+  top: -8px;
+  left: -8px;
+  font-size: 20px;
+  color: @blue;
+}
+
+.grafana-info-box {
+  position: relative;
+  padding: 5px 15px;
+  background-color: @grafanaTargetBackground;
+  border: 1px solid @grafanaTargetBorder;
+  h5 {
+    margin-top: 5px;
+  }
+}
+
+.grafana-tip {
+  padding-left: 5px;
 }

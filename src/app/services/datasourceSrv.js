@@ -84,7 +84,7 @@ function (angular, _, config) {
       if (!name) { return this.default; }
       if (datasources[name]) { return datasources[name]; }
 
-      throw "Unable to find datasource: " + name;
+      return this.default;
     };
 
     this.getAnnotationSources = function() {

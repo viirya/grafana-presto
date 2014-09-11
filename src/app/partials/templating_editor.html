@@ -23,7 +23,9 @@
 					<table class="grafana-options-table">
 						<tr ng-repeat="variable in variables">
 							<td style="width: 1%">
-								[[{{variable.name}}]]
+								<span class="template-variable">
+									${{variable.name}}
+								</span>
 							</td>
 							<td class="max-width" style="max-width: 200px;">
 								{{variable.query}}
@@ -58,7 +60,7 @@
 						</div>
 						<div class="editor-option">
 							<label class="small">Type</label>
-							<select class="input-medium" ng-model="current.type" ng-options="f for f in ['query', 'time period']" ng-change="typeChanged()"></select>
+							<select class="input-medium" ng-model="current.type" ng-options="f for f in ['query', 'interval', 'custom']" ng-change="typeChanged()"></select>
 						</div>
 						<div class="editor-option" ng-show="current.type === 'query'">
 							<label class="small">Datasource</label>
@@ -70,10 +72,31 @@
 						</div>
 					</div>
 
-					<div ng-show="current.type === 'time period'">
-						<div class="editor-option">
-							<label class="small">Values</label>
-							<input type="text" class="input-xxlarge" ng-model='current.query' placeholder="name"></input>
+					<div ng-show="current.type === 'interval'">
+						<div class="editor-row">
+							<div class="editor-option">
+								<label class="small">Values</label>
+								<input type="text" class="input-xxlarge" ng-model='current.query' ng-blur="runQuery()" placeholder="name"></input>
+							</div>
+						</div>
+						<div class="editor-row">
+							<div class="editor-option text-center">
+								<label class="small">Include auto interval</label>
+								<input type="checkbox" ng-model="current.auto" ng-checked="current.auto" ng-change="runQuery()">
+							</div>
+							<div class="editor-option" ng-show="current.auto">
+								<label class="small">Auto interval steps <tip>How many steps, roughly, the interval is rounded and will not always match this count<tip></label>
+								<select class="input-mini" ng-model="current.auto_count" ng-options="f for f in [3,5,10,30,50,100,200]" ng-change="runQuery()"></select>
+							</div>
+						</div>
+					</div>
+
+					<div ng-show="current.type === 'custom'">
+						<div class="editor-row">
+							<div class="editor-option">
+								<label class="small">Values seperated by comma</label>
+								<input type="text" class="input-xxlarge" ng-model='current.query' ng-blur="runQuery()" placeholder="1, 10, 20, myvalue"></input>
+							</div>
 						</div>
 					</div>
 
@@ -101,11 +124,11 @@
 							</div>
 							<div class="editor-option" ng-show="current.includeAll">
 								<label class="small">All format</label>
-								<select class="input-medium" ng-model="current.allFormat" ng-change="runQuery()" ng-options="f for f in ['glob', 'wildcard', 'regex wildcard', 'regex all values', 'comma list', 'custom']" ng-change="typeChanged()"></select>
+								<select class="input-medium" ng-model="current.allFormat" ng-change="runQuery()" ng-options="f for f in ['glob', 'wildcard', 'regex wildcard', 'regex values']"></select>
 							</div>
 							<div class="editor-option" ng-show="current.includeAll">
 								<label class="small">All value</label>
-								<input type="text" class="input-xlarge" ng-disabled="true" ng-model='current.options[0].value'></input>
+								<input type="text" class="input-xlarge" ng-model='current.options[0].value'></input>
 							</div>
 						</div>
 					</div>
@@ -119,7 +142,7 @@
 									{{option.text}}
 								</li>
 							</ul>
-					 	</div>
+						</div>
 					</div>
 				</div>
 			</div>

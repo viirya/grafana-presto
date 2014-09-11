@@ -8,20 +8,48 @@ function (angular, _, kbn) {
 
   var module = angular.module('grafana.services');
 
-  module.service('templateValuesSrv', function($q, $rootScope, datasourceSrv, $routeParams, templateSrv) {
+  module.service('templateValuesSrv', function($q, $rootScope, datasourceSrv, $routeParams, templateSrv, timeSrv) {
     var self = this;
 
-    this.init = function(dashboard) {
-      this.variables = dashboard.templating.list;
+    $rootScope.onAppEvent('time-range-changed', function()  {
+      var variable = _.findWhere(self.variables, { type: 'interval' });
+      if (variable) {
+        self.updateAutoInterval(variable);
+      }
+    });
 
+    this.init = function(dashboard, viewstate) {
+      this.variables = dashboard.templating.list;
+      this.viewstate = viewstate;
       templateSrv.init(this.variables);
 
       for (var i = 0; i < this.variables.length; i++) {
-        var param = this.variables[i];
-        if (param.refresh) {
-          this.updateOptions(param);
+        var variable = this.variables[i];
+        var urlValue = viewstate.state['var-' + variable.name];
+        if (urlValue !== void 0) {
+          var option = _.findWhere(variable.options, { text: urlValue });
+          option = option || { text: urlValue, value: urlValue };
+          this.setVariableValue(variable, option, true);
+        }
+        else if (variable.refresh) {
+          this.updateOptions(variable);
+        }
+        else if (variable.type === 'interval') {
+          this.updateAutoInterval(variable);
         }
       }
+    };
+
+    this.updateAutoInterval = function(variable) {
+      if (!variable.auto) { return; }
+
+      // add auto option if missing
+      if (variable.options[0].text !== 'auto') {
+        variable.options.unshift({ text: 'auto', value: '$__auto_interval' });
+      }
+
+      var interval = kbn.calculateInterval(timeSrv.timeRange(), variable.auto_count);
+      templateSrv.setGrafanaVariable('$__auto_interval', interval);
     };
 
     this.setVariableValue = function(variable, option, recursive) {
@@ -42,7 +70,7 @@ function (angular, _, kbn) {
         if (otherVariable === updatedVariable) {
           return;
         }
-        if (otherVariable.query.indexOf('[[' + updatedVariable.name + ']]') !== -1) {
+        if (templateSrv.containsVariable(otherVariable.query, updatedVariable.name)) {
           return self.updateOptions(otherVariable);
         }
       });
@@ -50,19 +78,27 @@ function (angular, _, kbn) {
       return $q.all(promises);
     };
 
+    this._updateNonQueryVariable = function(variable) {
+      // extract options in comma seperated string
+      variable.options = _.map(variable.query.split(/[\s,]+/), function(text) {
+        return { text: text, value: text };
+      });
+
+      if (variable.type === 'interval') {
+        self.updateAutoInterval(variable);
+      }
+    };
+
     this.updateOptions = function(variable) {
-      if (variable.type === 'time period') {
-        variable.options = _.map(variable.query.split(','), function(text) {
-          return { text: text, value: text };
-        });
+      if (variable.type !== 'query') {
+        self._updateNonQueryVariable(variable);
         self.setVariableValue(variable, variable.options[0]);
-        return;
+        return $q.when([]);
       }
 
       var datasource = datasourceSrv.get(variable.datasource);
       return datasource.metricFindQuery(variable.query)
         .then(function (results) {
-
           variable.options = self.metricNamesToVariableValues(variable, results);
 
           if (variable.includeAll) {
@@ -72,9 +108,9 @@ function (angular, _, kbn) {
           // if parameter has current value
           // if it exists in options array keep value
           if (variable.current) {
-            var currentExists = _.findWhere(variable.options, { value: variable.current.value });
-            if (currentExists) {
-              return self.setVariableValue(variable, variable.current, true);
+            var currentOption = _.findWhere(variable.options, { text: variable.current.text });
+            if (currentOption) {
+              return self.setVariableValue(variable, currentOption, true);
             }
           }
 
@@ -87,7 +123,7 @@ function (angular, _, kbn) {
       options = {}; // use object hash to remove duplicates
 
       if (variable.regex) {
-        regex = kbn.stringToJsRegex(variable.regex);
+        regex = kbn.stringToJsRegex(templateSrv.replace(variable.regex));
       }
 
       for (i = 0; i < metricNames.length; i++) {
@@ -118,12 +154,13 @@ function (angular, _, kbn) {
       case 'regex wildcard':
         allValue = '.*';
         break;
+      case 'regex values':
+        allValue = '(' + _.pluck(variable.options, 'text').join('|') + ')';
+        break;
       default:
         allValue = '{';
-        _.each(variable.options, function(option) {
-          allValue += option.text + ',';
-        });
-        allValue = allValue.substring(0, allValue.length - 1) + '}';
+        allValue += _.pluck(variable.options, 'text').join(',');
+        allValue += '}';
       }
 
       variable.options.unshift({text: 'All', value: allValue});

@@ -54,6 +54,13 @@ function (angular, _, config, gfunc, Parser) {
       checkOtherSegments($scope.segments.length - 1);
     }
 
+    function addFunctionParameter(func, value, index, shiftBack) {
+      if (shiftBack) {
+        index = Math.max(index - 1, 0);
+      }
+      func.params[index] = value;
+    }
+
     function parseTargeRecursive(astNode, func, index) {
       if (astNode === null) {
         return null;
@@ -72,29 +79,22 @@ function (angular, _, config, gfunc, Parser) {
         break;
 
       case 'series-ref':
-        if ($scope.segments.length === 0) {
-          func.params[index] = astNode.value;
-        }
-        else {
-          func.params[index - 1] = astNode.value;
-        }
+        addFunctionParameter(func, astNode.value, index, $scope.segments.length > 0);
         break;
       case 'string':
       case 'number':
         if ((index-1) >= func.def.params.length) {
           throw { message: 'invalid number of parameters to method ' + func.def.name };
         }
-
-        if (index === 0) {
-          func.params[index] = astNode.value;
-        }
-        else {
-          func.params[index - 1] = astNode.value;
-        }
+        addFunctionParameter(func, astNode.value, index, true);
         break;
       case 'metric':
         if ($scope.segments.length > 0) {
-          throw { message: 'Multiple metric params not supported, use text editor.' };
+          if ($scope.segments[0].length !== 1) {
+            throw { message: 'Multiple metric params not supported, use text editor.' };
+          }
+          addFunctionParameter(func, astNode.segments[0].value, index, true);
+          break;
         }
 
         $scope.segments = _.map(astNode.segments, function(segment) {
@@ -165,7 +165,7 @@ function (angular, _, config, gfunc, Parser) {
           _.each(templateSrv.variables, function(variable) {
             $scope.altSegments.unshift(new MetricSegment({
               type: 'template',
-              value: '[[' + variable.name + ']]',
+              value: '$' + variable.name,
               expandable: true,
             }));
           });
@@ -297,13 +297,7 @@ function (angular, _, config, gfunc, Parser) {
       this.value = options.value;
       this.type = options.type;
       this.expandable = options.expandable;
-
-      if (options.type === 'template') {
-        this.html = $sce.trustAsHtml(options.value);
-      }
-      else {
-        this.html = $sce.trustAsHtml(this.value);
-      }
+      this.html = $sce.trustAsHtml(templateSrv.highlightVariablesAsHtml(this.value));
     }
 
   });

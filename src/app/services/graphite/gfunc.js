@@ -68,7 +68,14 @@ function (_) {
   addFuncDef({
     name: 'diffSeries',
     params: optionalSeriesRefArgs,
-    defaultParams: ['#B'],
+    defaultParams: ['#A'],
+    category: categories.Calculate,
+  });
+
+  addFuncDef({
+    name: 'divideSeries',
+    params: optionalSeriesRefArgs,
+    defaultParams: ['#A'],
     category: categories.Calculate,
   });
 
@@ -554,9 +561,6 @@ function (_) {
 
     if (strValue === '' && this.def.params[index].optional) {
       this.params.splice(index, 1);
-    }
-    else if (this.def.params[index].type === 'int') {
-      this.params[index] = parseFloat(strValue, 10);
     }
     else {
       this.params[index] = strValue;
