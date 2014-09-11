@@ -25,7 +25,6 @@ function (Settings) {
         type: 'prestodb',
         urls: ["http://my.presto.server.com:8080"],
         key: "key",
-        since: "2014-04-01 00:00:00",
         time_field: "play_time",
         pseudonow: '2014-04-30 23:00:00',
         timezone: 8,

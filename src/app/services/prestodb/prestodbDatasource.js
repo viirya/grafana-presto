@@ -32,16 +32,18 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       this.supportMetrics = true;
       this.annotationEditorSrc = 'app/partials/prestodb/annotation_editor.html';
 
-      this.sinceDate = datasource.since;
       this.timeField = datasource.time_field;
       this.key = datasource.key;
       this.pseudonow = datasource.pseudonow ||  moment().format("YYYY-MM-DD hh:mm:ss");
+      this.sinceDate = moment(this.pseudonow).subtract('days', 30).format("YYYY-MM-DD hh:mm:ss");
       this.now = "date_parse('" + this.pseudonow + "', '%Y-%m-%e %H:%i:%s')";
       this.timezone = datasource.timezone;
     }
 
     PrestoDatasource.prototype.query = function(options) {
       var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, this.timezone, options);
+
+      this.sinceDate = timeFilter[1].format("YYYY-MM-DD hh:mm:ss");
 
       var promises = _.map(options.targets, function(target) {
         if (target.hide || !((target.series && target.column) || target.query)) {
@@ -55,7 +57,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
         var query = queryBuilder.build();
 
         // replace grafana variables
-        query = query.replace('$timeFilter', timeFilter);
+        query = query.replace('$timeFilter', timeFilter[0]);
 
         var prestoInterval = getPrestoInterval(this.sinceDate, this.timeField, target.interval || options.interval);
         var prestoIntervalState = prestoInterval[0];
@@ -86,7 +88,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
 
     PrestoDatasource.prototype.annotationQuery = function(annotation, rangeUnparsed) {
       var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, this.timezone, { range: rangeUnparsed });
-      var query = annotation.query.replace('$timeFilter', timeFilter);
+      var query = annotation.query.replace('$timeFilter', timeFilter[0]);
       query = templateSrv.replace(annotation.query);
 
       return this._seriesQuery(query).then(function(results) {
@@ -350,8 +352,9 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       var until = getPrestoTime(options.range.to);
 
       if (until === 'now()') {
-        from = getPrestoTimeDetails(from, nowStr);
-        return "date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')" + " > " + from;
+        from = getPrestoTimeDetails(from, pseudoNowDate);
+        return ["date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')" + " > " +
+          "date_parse('" + from.format("YYYY-MM-DD hh:mm:ss") + "', '%Y-%m-%e %H:%i:%s')", from];
       }
 
       var parsedFrom = parseIntervalString(from);
@@ -364,8 +367,8 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       parsedFrom[0] += timeZone * 60 * 60;
       parsedUntil[0] += timeZone * 60 * 60;
 
-      return "to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) > " + parsedFrom[0] +
-        " and to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) < " + parsedUntil[0];
+      return ["to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) > " + parsedFrom[0] +
+        " and to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) < " + parsedUntil[0], moment.unix(parsedFrom[0])];
     }
 
     function parseIntervalString(interval) {
@@ -419,14 +422,14 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
              //" + to_unixtime(date_parse('" + sinceDate + "', '%Y-%m-%e %H:%i:%s'))";
     }
 
-    function getPrestoTimeDetails(fromDate, nowStr) {
+    function getPrestoTimeDetails(fromDate, pseudoNowDate) {
 
       var interval = parseIntervalString(fromDate);
 
       var value = interval[0];
       var unit_word = interval[1]; 
       
-      return "date_add('" + unit_word + "', " + -value + ", " + nowStr + ")";
+      return moment(pseudoNowDate).subtract(unit_word, value);
     }
 
     function getPrestoTime(date) {
