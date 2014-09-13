@@ -55,7 +55,6 @@ function (_, moment) {
         for (i = 0; i < groupPoints.length; i++) {
           var metricValue = isNaN(groupPoints[i][valueCol]) ? null : groupPoints[i][valueCol];
           var timeValue = groupPoints[i][timeCol] * self.intervalSeconds + moment(self.sinceDate).unix();
-          timeValue += (moment().unix() - moment(self.pseudoNowDate).unix());
           datapoints[i] = [metricValue, timeValue];
         }
 

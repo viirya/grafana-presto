@@ -11,7 +11,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
 
   var module = angular.module('grafana.services');
 
-  module.factory('PrestoDatasource', function($q, $http, templateSrv) {
+  module.factory('PrestoDatasource', function($q, $http, templateSrv, timeSrv) {
 
     function PrestoDatasource(datasource) {
       this.type = 'prestoDB';
@@ -34,13 +34,18 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
 
       this.timeField = datasource.time_field;
       this.key = datasource.key;
-      this.pseudonow = datasource.pseudonow ||  moment().format("YYYY-MM-DD hh:mm:ss");
+      this.pseudonow = datasource.pseudonow;
       this.sinceDate = moment(this.pseudonow).subtract('days', 30).format("YYYY-MM-DD hh:mm:ss");
       this.now = "date_parse('" + this.pseudonow + "', '%Y-%m-%e %H:%i:%s')";
       this.timezone = datasource.timezone;
     }
 
     PrestoDatasource.prototype.query = function(options) {
+
+      // Use pseudo now config as current date
+      setPseudoNow(timeSrv, this.pseudonow || moment().format("YYYY-MM-DD hh:mm:ss"));
+      options.range = timeSrv.timeRange(false);
+
       var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, this.timezone, options);
 
       this.sinceDate = timeFilter[1].format("YYYY-MM-DD hh:mm:ss");
@@ -148,6 +153,22 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
           });
         });
     };
+
+    function setPseudoNow(timeSrv, pseudonow) {
+
+      var range = timeSrv.timeRange();
+      var rangeUnparsed = timeSrv.timeRange(false);
+
+      if (rangeUnparsed.to === 'now') {
+        range.to = moment(pseudonow).toDate();
+
+        var diff = moment().unix() - moment(pseudonow).unix();
+        range.from = moment(range.from).subtract('seconds', diff).toDate();
+
+        timeSrv.setTime(range);
+
+      }
+    }
 
     function retry(deferred, callback, delay) {
       return callback().then(undefined, function(reason) {
@@ -360,13 +381,13 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       var parsedFrom = parseIntervalString(from);
       var parsedUntil = parseIntervalString(until);
 
-      parsedFrom[0] -= ((moment().unix() - moment(pseudoNowDate).unix()));
-      parsedUntil[0] -= ((moment().unix() - moment(pseudoNowDate).unix()));
+      parsedFrom[0] -= 0;
+      parsedUntil[0] -= 0;
 
       // for GMT+0800
       parsedFrom[0] += timeZone * 60 * 60;
       parsedUntil[0] += timeZone * 60 * 60;
-
+      
       return ["to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) > " + parsedFrom[0] +
         " and to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) < " + parsedUntil[0], moment.unix(parsedFrom[0])];
     }
