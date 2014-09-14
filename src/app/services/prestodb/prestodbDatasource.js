@@ -38,6 +38,14 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       this.sinceDate = moment(this.pseudonow).subtract('days', 30).format("YYYY-MM-DD hh:mm:ss");
       this.now = "date_parse('" + this.pseudonow + "', '%Y-%m-%e %H:%i:%s')";
       this.timezone = datasource.timezone;
+      this.timeFieldIsString =  _.isUndefined(datasource.time_field_is_string) ?
+        true : datasource.time_field_is_string;
+
+      if (this.timeFieldIsString) {
+        this.timeFieldStatement = "date_parse(" + this.timeField + ", '%Y-%m-%e %H:%i:%s')";
+      } else {
+        this.timeFieldStatement = this.timeField;
+      }
     }
 
     PrestoDatasource.prototype.query = function(options) {
@@ -46,7 +54,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       setPseudoNow(timeSrv, this.pseudonow || moment().format("YYYY-MM-DD hh:mm:ss"));
       options.range = timeSrv.timeRange(false);
 
-      var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, this.timezone, options);
+      var timeFilter = getTimeFilter(this.timeFieldStatement, this.now, this.pseudonow, this.timezone, options);
 
       this.sinceDate = timeFilter[1].format("YYYY-MM-DD hh:mm:ss");
 
@@ -64,7 +72,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
         // replace grafana variables
         query = query.replace('$timeFilter', timeFilter[0]);
 
-        var prestoInterval = getPrestoInterval(this.sinceDate, this.timeField, target.interval || options.interval);
+        var prestoInterval = getPrestoInterval(this.sinceDate, this.timeFieldStatement, target.interval || options.interval);
         var prestoIntervalState = prestoInterval[0];
         var intervalSeconds = prestoInterval[1];
 
@@ -92,7 +100,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
     };
 
     PrestoDatasource.prototype.annotationQuery = function(annotation, rangeUnparsed) {
-      var timeFilter = getTimeFilter(this.timeField, this.now, this.pseudonow, this.timezone, { range: rangeUnparsed });
+      var timeFilter = getTimeFilter(this.timeFieldStatement, this.now, this.pseudonow, this.timezone, { range: rangeUnparsed });
       var query = annotation.query.replace('$timeFilter', timeFilter[0]);
       query = templateSrv.replace(annotation.query);
 
@@ -368,13 +376,13 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       return prestoSeries.getTimeSeries();
     }
 
-    function getTimeFilter(timeField, nowStr, pseudoNowDate, timeZone, options) {
+    function getTimeFilter(timeFieldStatement, nowStr, pseudoNowDate, timeZone, options) {
       var from = getPrestoTime(options.range.from);
       var until = getPrestoTime(options.range.to);
 
       if (until === 'now()') {
         from = getPrestoTimeDetails(from, pseudoNowDate);
-        return ["date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')" + " > " +
+        return [timeFieldStatement + " > " +
           "date_parse('" + from.format("YYYY-MM-DD hh:mm:ss") + "', '%Y-%m-%e %H:%i:%s')", from];
       }
 
@@ -388,8 +396,8 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       parsedFrom[0] += timeZone * 60 * 60;
       parsedUntil[0] += timeZone * 60 * 60;
       
-      return ["to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) > " + parsedFrom[0] +
-        " and to_unixtime(date_parse(" + timeField + ", '%Y-%m-%e %H:%i:%s')) < " + parsedUntil[0], moment.unix(parsedFrom[0])];
+      return ["to_unixtime(" + timeFieldStatement + ") > " + parsedFrom[0] +
+        " and to_unixtime(" + timeFieldStatement + ") < " + parsedUntil[0], moment.unix(parsedFrom[0])];
     }
 
     function parseIntervalString(interval) {
@@ -414,7 +422,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       return [res[1], unit_word];
     }
 
-    function getPrestoInterval(sinceDate, timeField, intervalStr) {
+    function getPrestoInterval(sinceDate, timeFieldStatement, intervalStr) {
 
       var interval = parseIntervalString(intervalStr);
 
@@ -437,8 +445,8 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
           break;
       }
 
-      return ["floor((to_unixtime(date_parse(" + timeField +
-             ", '%Y-%m-%e %H:%i:%s')) - to_unixtime(date_parse('" + sinceDate +
+      return ["floor((to_unixtime(" + timeFieldStatement +
+             ") - to_unixtime(date_parse('" + sinceDate +
              "', '%Y-%m-%e %H:%i:%s'))) / (" + intervalSeconds + "))", intervalSeconds];
              //" + to_unixtime(date_parse('" + sinceDate + "', '%Y-%m-%e %H:%i:%s'))";
     }
