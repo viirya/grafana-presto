@@ -22,13 +22,14 @@ function () {
       seriesName = '' + seriesName+ '';
     }
 
-    if (target.groupby_field) {
-      query += target.groupby_field + ', ';
-    }
-
     query +=  '$datetrunc as time, ';
 
     query +=  target.function + '(' + target.column + ')';
+
+    if (target.groupby_field) {
+      query += ', ' + target.groupby_field;
+    }
+ 
     query += ' from ' + seriesName + ' where $timeFilter';
 
     if (target.condition) {

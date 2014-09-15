@@ -18,6 +18,16 @@ function (_, moment) {
 
   var p = PrestoSeries.prototype;
 
+  p.searchColumns = function(series, field) {
+    var i = -1;
+    _.each(series.Columns, function(column, index) {
+      if (column.name === field) {
+        i = index;
+      }
+    }); 
+    return i;
+  };
+
   p.getTimeSeries = function() {
     var output = [];
     var self = this;
@@ -29,12 +39,12 @@ function (_, moment) {
       var groupByCol = -1;
 
       if (self.groupByField) {
-        groupByCol = series.Columns.indexOf(self.groupByField);
+        groupByCol = self.searchColumns(series, self.groupByField);
       }
 
       // find value column
       _.each(series.Columns, function(column, index) {
-        if (column !== 'time' && column !== 'sequence_number' && column !== self.groupByField) {
+        if (column.name !== 'time' && column.name !== 'sequence_number' && column.name !== self.groupByField) {
           valueCol = index;
         }
       });
@@ -47,10 +57,10 @@ function (_, moment) {
         });
       }
       else {
-        groups[series.Columns[valueCol]] = series.Data;
+        groups[''] = series.Data;
       }
 
-      _.each(groups, function(groupPoints) {
+      _.each(groups, function(groupPoints, groupKey) {
         var datapoints = [];
         for (i = 0; i < groupPoints.length; i++) {
           var metricValue = isNaN(groupPoints[i][valueCol]) ? null : groupPoints[i][valueCol];
@@ -58,7 +68,7 @@ function (_, moment) {
           datapoints[i] = [metricValue, timeValue];
         }
 
-        output.push({ target: self.seriesName, datapoints: datapoints });
+        output.push({ target: self.seriesName + groupKey, datapoints: datapoints });
       });
     });
 
