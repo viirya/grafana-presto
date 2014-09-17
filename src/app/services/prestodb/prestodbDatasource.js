@@ -4,9 +4,10 @@ define([
   'kbn',
   'moment',
   './prestoSeries',
-  './prestoQueryBuilder'
+  './prestoQueryBuilder',
+  './localGrafanaDB'
 ],
-function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
+function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder, LocalGrafanaDB) {
   'use strict';
 
   var module = angular.module('grafana.services');
@@ -46,6 +47,8 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       } else {
         this.timeFieldStatement = this.timeField;
       }
+
+      this.localGrafanaDB = new LocalGrafanaDB();
     }
 
     PrestoDatasource.prototype.query = function(options) {
