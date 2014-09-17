@@ -2,6 +2,7 @@
 
 **Fixes**
 - [Issue #802](https://github.com/grafana/grafana/issues/802). Annotations: Fix when using InfluxDB datasource
+- [Issue #795](https://github.com/grafana/grafana/issues/795). Chrome: Fix for display issue in chrome beta & chrome canary when entering edit mode
 
 # 1.8.0-RC1 (2014-09-12)
 
@@ -244,7 +245,7 @@ Read this for more info:
 - More graphite function definitions
 - Make "ms" axis format include hour, day, weeks, month and year ([Issue #149](https://github.com/grafana/grafana/issues/149))
 - Microsecond axis format ([Issue #146](https://github.com/grafana/grafana/issues/146))
-- Specify template paramaters in URL ([Issue #123](https://github.com/grafana/grafana/issues/123))
+- Specify template parameters in URL ([Issue #123](https://github.com/grafana/grafana/issues/123))
 
 ### Fixes
 - Basic Auth fix ([Issue #152](https://github.com/grafana/grafana/issues/152))
