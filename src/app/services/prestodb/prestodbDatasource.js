@@ -7,12 +7,12 @@ define([
   './prestoQueryBuilder',
   './localGrafanaDB'
 ],
-function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder, LocalGrafanaDB) {
+function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
   'use strict';
 
   var module = angular.module('grafana.services');
 
-  module.factory('PrestoDatasource', function($q, $http, templateSrv, timeSrv) {
+  module.factory('PrestoDatasource', function($q, $http, templateSrv, timeSrv, LocalStorageDatasource) {
 
     function PrestoDatasource(datasource) {
       this.type = 'prestoDB';
@@ -48,7 +48,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder, LocalGrafan
         this.timeFieldStatement = this.timeField;
       }
 
-      this.localGrafanaDB = new LocalGrafanaDB();
+      this.localGrafanaDB = new LocalStorageDatasource();
     }
 
     PrestoDatasource.prototype.query = function(options) {
@@ -236,22 +236,25 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder, LocalGrafan
       var tags = dashboard.tags.join(',');
       var title = dashboard.title;
       var temp = dashboard.temp;
+      var id = kbn.slugifyForUrl(title);
+      dashboard.id = id;
       if (temp) { delete dashboard.temp; }
 
       var data = [{
-        name: 'grafana.dashboard_' + btoa(title),
-        columns: ['time', 'sequence_number', 'title', 'tags', 'dashboard'],
-        points: [[1000000000000, 1, title, tags, angular.toJson(dashboard)]]
+        name: 'grafana.dashboard_' + btoa(id),
+        id: id,
+        dashboard: angular.toJson(dashboard)
       }];
 
       if (temp) {
-        return this._saveDashboardTemp(data, title);
+        return this._saveDashboardTemp(data, title, id);
       }
       else {
-        return this._prestoRequest('POST', '/series', data).then(function() {
-          return { title: title, url: '/dashboard/db/' + title };
+        var self = this;
+        return self.localGrafanaDB._saveDashboard(id, title, tags, data).then(function() {
+          return { title: title, url: '/dashboard/db/' + id };
         }, function(err) {
-          throw 'Failed to save dashboard to PrestoDB: ' + err.data;
+          throw 'Failed to save dashboard to LocalStorage for PrestoDB: ' + err.data;
         });
       }
     };
@@ -290,20 +293,18 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder, LocalGrafan
       return expires;
     };
 
-    PrestoDatasource.prototype.getDashboard = function(id, isTemp) {
-      var queryString = 'select dashboard from "grafana.dashboard_' + btoa(id) + '"';
+    PrestoDatasource.prototype.getDashboard = function(id) {//, isTemp) {
+      var query = {'id': id};
 
-      if (isTemp) {
-        queryString = 'select dashboard from "grafana.temp_dashboard_' + btoa(id) + '"';
-      }
+      //if (isTemp) {
+      //}
 
-      return this._seriesQuery(queryString).then(function(results) {
+      return this.localGrafanaDB._getDashboard(query).then(function(results) {
         if (!results || !results.length) {
           throw "Dashboard not found";
         }
 
-        var dashCol = _.indexOf(results[0].columns, 'dashboard');
-        var dashJson = results[0].points[0][dashCol];
+        var dashJson = results[0]['dashboard'];
 
         return angular.fromJson(dashJson);
       }, function(err) {
@@ -365,8 +366,6 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder, LocalGrafan
     };
 
     function handlePrestoQueryResponse(alias, groupByField, sinceDate, pseudoNowDate, intervalSeconds, seriesList) {
-      //console.log("handlePrestoQueryResponse");
-      //console.log(seriesList);
       var prestoSeries = new PrestoSeries({
         seriesList: seriesList,
         alias: alias,
