@@ -1,7 +1,8 @@
 define([
   'angular',
+  'lodash'
 ],
-function (angular) {
+function (angular, _) {
   'use strict';
 
   var module = angular.module('grafana.services');
@@ -136,12 +137,137 @@ function (angular) {
           }
       
           deferred.resolve();
+        } else {
+          deferred.reject();
         }
       }, 0);
       
       return deferred.promise;
     };
 
+    l._deleteDashboard = function(id) {
+      var _this = this;
+      var deferred = $q.defer();
+      
+      setTimeout(function() {
+        if (_this.support && _this.localStorage !== null) {
+          var d = _this._getItem(_this.keys['dashboard']);
+          if (id in d) {
+            
+            // delete dashboard
+            delete d[id];
+            _this._setItem(_this.keys['dashboard'], d);
+
+            // delete corresponding records in tag
+            var tags = _this._getItem(_this.keys['tag']);
+            _.each(tags, function(tag, key) {
+              var dashboard_ids = tags[key];
+              dashboard_ids = _.filter(dashboard_ids, function(d_id) {
+                return d_id !== id; 
+              });
+              tags[key] = dashboard_ids;
+            }); 
+
+            _this._setItem(_this.keys['tag'], tags);
+
+            // delete corresponding records in title
+            var titles = _this._getItem(_this.keys['title']);
+            _.each(titles, function(title, key) {
+              var dashboard_ids = titles[key];
+              dashboard_ids = _.filter(dashboard_ids, function(d_id) {
+                return d_id !== id; 
+              });
+              titles[key] = dashboard_ids;
+            }); 
+
+            _this._setItem(_this.keys['title'], titles);
+       
+            deferred.resolve(true);
+          } else {
+            deferred.resolve(false);
+          }
+        } else {
+          deferred.reject();
+        }
+      }, 0);
+      
+      return deferred.promise;
+    };
+
+    l._searchDashboards = function(query) {
+      var _this = this;
+      var deferred = $q.defer();
+      
+      setTimeout(function() {
+        if (_this.support && _this.localStorage !== null) {
+          var dashboards = [];
+          var visited = {};
+
+          if ('tag' in query) {
+            var tags = _this._getItem(_this.keys['tag']);
+
+            _.each(tags, function(tag, key) {
+              if (query['tag'].test(key)) {
+                var dashboard_ids = tags[key];
+
+                _.each(dashboard_ids, function(id) {
+                  var target = _this._getDashboardById_Internal(id);
+            
+                  if (target && 'id' in target && !(target['id'] in visited)) {  
+                    dashboards.push(
+                      {'id': target['id'],
+                      'title': target['title'],
+                      'tags': target['tags']});
+
+                    visited[target['id']] = true;
+                  }
+
+                });
+              }
+            });
+          }
+
+          if ('title' in query) {
+            var titles = _this._getItem(_this.keys['title']);
+
+            _.each(titles, function(title, key) {
+              if (query['title'].test(key)) {
+                var dashboard_ids = titles[key];
+
+                _.each(dashboard_ids, function(id) {
+                  var target = _this._getDashboardById_Internal(id);
+
+                  if (target && 'id' in target && !(target['id'] in visited)) {
+                    dashboards.push(
+                      {'id': target['id'],
+                      'title': target['title'],
+                      'tags': target['tags']});
+
+                    visited[target['id']] = true;
+                  }
+
+                });
+              }
+            });
+          }
+          deferred.resolve(dashboards);
+        } else {
+          deferred.reject();
+        }
+      }, 0);
+      
+      return deferred.promise;
+    };
+
+    l._getDashboardById_Internal = function(id) {
+      var d = this._getItem(this.keys['dashboard']);
+      if (id in d) {
+        return d[id][0];
+      } else {
+        return {};
+      }
+    };
+ 
     l._getDashboardById = function(id) {
       var _this = this;
       var deferred = $q.defer();
@@ -154,6 +280,8 @@ function (angular) {
           } else {
             deferred.resolve();
           }
+        } else {
+          deferred.reject();
         }
       }, 0);
       

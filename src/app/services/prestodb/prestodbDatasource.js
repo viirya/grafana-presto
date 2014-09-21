@@ -243,6 +243,8 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       var data = [{
         name: 'grafana.dashboard_' + btoa(id),
         id: id,
+        title: title,
+        tags: tags,
         dashboard: angular.toJson(dashboard)
       }];
 
@@ -313,7 +315,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
     };
 
     PrestoDatasource.prototype.deleteDashboard = function(id) {
-      return this._seriesQuery('drop series "grafana.dashboard_' + btoa(id) + '"').then(function(results) {
+      return this.localGrafanaDB._deleteDashboard(id).then(function(results) {
         if (!results) {
           throw "Could not delete dashboard";
         }
@@ -324,39 +326,39 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
     };
 
     PrestoDatasource.prototype.searchDashboards = function(queryString) {
-      var prestoQuery = 'select title, tags from /grafana.dashboard_.*/ where ';
-
+      var localStorageQuery = {};
+ 
       var tagsOnly = queryString.indexOf('tags!:') === 0;
       if (tagsOnly) {
         var tagsQuery = queryString.substring(6, queryString.length);
-        prestoQuery = prestoQuery + 'tags =~ /.*' + tagsQuery + '.*/i';
+        localStorageQuery['tag'] = new RegExp('.*' + tagsQuery + '.*', 'i');
       }
       else {
         var titleOnly = queryString.indexOf('title:') === 0;
         if (titleOnly) {
           var titleQuery = queryString.substring(6, queryString.length);
-          prestoQuery = prestoQuery + ' title =~ /.*' + titleQuery + '.*/i';
+          localStorageQuery['title'] = new RegExp('.*' + titleQuery + '.*', 'i');
         }
         else {
-          prestoQuery = prestoQuery + '(tags =~ /.*' + queryString + '.*/i or title =~ /.*' + queryString + '.*/i)';
+          localStorageQuery['tag'] = new RegExp('.*' + queryString + '.*', 'i');
+          localStorageQuery['title'] = new RegExp('.*' + queryString + '.*', 'i');
         }
       }
 
-      return this._seriesQuery(prestoQuery).then(function(results) {
+      return this.localGrafanaDB._searchDashboards(localStorageQuery).then(function(results) {
         var hits = { dashboards: [], tags: [], tagsOnly: false };
+
+        console.log(results);
 
         if (!results || !results.length) {
           return hits;
         }
 
-        var dashCol = _.indexOf(results[0].columns, 'title');
-        var tagsCol = _.indexOf(results[0].columns, 'tags');
-
         for (var i = 0; i < results.length; i++) {
           var hit =  {
-            id: results[i].points[0][dashCol],
-            title: results[i].points[0][dashCol],
-            tags: results[i].points[0][tagsCol].split(",")
+            id: results[i]['id'],
+            title: results[i]['title'],
+            tags: results[i]['tags'].split(',')
           };
           hit.tags = hit.tags[0] ? hit.tags : [];
           hits.dashboards.push(hit);
