@@ -28,6 +28,7 @@ function (Settings) {
         time_field_is_string: false,
         pseudonow: '2014-04-30 23:00:00',
         timezone: 8,
+        grafanaDB: true,
       },
     },
     
