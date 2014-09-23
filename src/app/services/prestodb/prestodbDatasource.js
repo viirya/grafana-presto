@@ -103,8 +103,13 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
     };
 
     PrestoDatasource.prototype.annotationQuery = function(annotation, rangeUnparsed) {
+
+      setPseudoNow(timeSrv, this.pseudonow || moment().format("YYYY-MM-DD hh:mm:ss"));
+      rangeUnparsed = timeSrv.timeRange(false);
+
       var timeFilter = getTimeFilter(this.timeFieldStatement, this.now, this.pseudonow, this.timezone, { range: rangeUnparsed });
       var query = annotation.query.replace('$timeFilter', timeFilter[0]);
+      query = query.replace('select', "select to_unixtime(" + this.timeFieldStatement + ") as time,");
       query = templateSrv.replace(annotation.query);
 
       return this._seriesQuery(query).then(function(results) {
