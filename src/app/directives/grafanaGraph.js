@@ -105,15 +105,14 @@ function (angular, $, kbn, moment, _, GraphTooltip) {
 
         function updateLegendValues(plot) {
           var yaxis = plot.getYAxes();
-          console.log("value");
 
           for (var i = 0; i < data.length; i++) {
             var series = data[i];
             var axis = yaxis[series.yaxis - 1];
             var formater = kbn.valueFormats[scope.panel.y_formats[series.yaxis - 1]];
             series.updateLegendValues(formater, axis.tickDecimals, axis.scaledDecimals);
+            if(!scope.$$phase) { scope.$digest(); }
           }
-
         }
 
         // Function for rendering panel
@@ -417,7 +416,9 @@ function (angular, $, kbn, moment, _, GraphTooltip) {
           elem.html('<img src="' + url + '"></img>');
         }
 
-        new GraphTooltip(elem, dashboard, scope);
+        new GraphTooltip(elem, dashboard, scope, function() {
+          return data;
+        });
 
         elem.bind("plotselected", function (event, ranges) {
           scope.$apply(function() {
