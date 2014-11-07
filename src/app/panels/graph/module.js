@@ -28,7 +28,6 @@ function (angular, app, $, _, kbn, moment, TimeSeries) {
   module.controller('GraphCtrl', function($scope, $rootScope, panelSrv, annotationsSrv, timeSrv) {
 
     $scope.panelMeta = {
-      modals : [],
       editorTabs: [],
       fullEditorTabs : [
         {
@@ -179,7 +178,12 @@ function (angular, app, $, _, kbn, moment, TimeSeries) {
     $scope.updateTimeRange = function () {
       $scope.range = timeSrv.timeRange();
       $scope.rangeUnparsed = timeSrv.timeRange(false);
-      $scope.resolution = Math.ceil($(window).width() * ($scope.panel.span / 12));
+      if ($scope.panel.maxDataPoints) {
+        $scope.resolution = $scope.panel.maxDataPoints;
+      }
+      else {
+        $scope.resolution = Math.ceil($(window).width() * ($scope.panel.span / 12));
+      }
       $scope.interval = kbn.calculateInterval($scope.range, $scope.resolution, $scope.panel.interval);
     };
 
@@ -346,14 +350,6 @@ function (angular, app, $, _, kbn, moment, TimeSeries) {
     $scope.removeSeriesOverride = function(override) {
       $scope.panel.seriesOverrides = _.without($scope.panel.seriesOverrides, override);
       $scope.render();
-    };
-
-    $scope.toggleEditorHelp = function(index) {
-      if ($scope.editorHelpIndex === index) {
-        $scope.editorHelpIndex = null;
-        return;
-      }
-      $scope.editorHelpIndex = index;
     };
 
     panelSrv.init($scope);
