@@ -2,18 +2,16 @@ define([
   'angular',
   'app',
   'lodash',
-  'kbn',
   'jquery',
   'jquery.flot',
-  'jquery.flot.time',
 ],
-function (angular, app, _, kbn, $) {
+function (angular, app, _, $) {
   'use strict';
 
   var module = angular.module('grafana.panels.singlestat', []);
   app.useModule(module);
 
-  module.directive('singlestatPanel', function() {
+  module.directive('singlestatPanel', function($location, linkSrv, $timeout) {
 
     return {
       link: function(scope, elem) {
@@ -102,7 +100,7 @@ function (angular, app, _, kbn, $) {
             plotCss.bottom = "0px";
             plotCss.left = "-5px";
             plotCss.width = (width - 10) + 'px';
-            plotCss.height = Math.floor(height * 0.3) + "px";
+            plotCss.height = Math.floor(height * 0.25) + "px";
           }
 
           plotCanvas.css(plotCss);
@@ -140,6 +138,8 @@ function (angular, app, _, kbn, $) {
         }
 
         function render() {
+          if (!scope.data) { return; }
+
           data = scope.data;
           panel = scope.panel;
 
@@ -167,7 +167,36 @@ function (angular, app, _, kbn, $) {
           if (panel.sparkline.show) {
             addSparkline();
           }
+
+          elem.toggleClass('pointer', panel.links.length > 0);
         }
+
+        // drilldown link tooltip
+        var drilldownTooltip = $('<div id="tooltip" class="">gello</div>"');
+
+        elem.mouseleave(function() {
+          if (panel.links.length === 0) { return;}
+          drilldownTooltip.detach();
+        });
+
+        elem.click(function() {
+          if (panel.links.length === 0) { return; }
+
+          var linkInfo = linkSrv.getPanelLinkAnchorInfo(panel.links[0]);
+          if (linkInfo.href[0] === '#') { linkInfo.href = linkInfo.href.substring(1); }
+
+          $timeout(function() { $location.url(linkInfo.href); });
+
+          drilldownTooltip.detach();
+        });
+
+        elem.mousemove(function(e) {
+          if (panel.links.length === 0) { return;}
+
+          drilldownTooltip.text('click to go to: ' + panel.links[0].title);
+
+          drilldownTooltip.place_tt(e.clientX+20, e.clientY-15);
+        });
       }
     };
   });

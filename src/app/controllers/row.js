@@ -47,9 +47,13 @@ function (angular, app, _) {
     };
 
     $scope.delete_row = function() {
-      if (confirm("Are you sure you want to delete this row?")) {
-        $scope.dashboard.rows = _.without($scope.dashboard.rows, $scope.row);
-      }
+      $scope.appEvent('confirm-modal', {
+        title: 'Delete row',
+        text: 'Are you sure you want to delete this row?',
+        onConfirm: function() {
+          $scope.dashboard.rows = _.without($scope.dashboard.rows, $scope.row);
+        }
+      });
     };
 
     $scope.move_row = function(direction) {
@@ -76,9 +80,13 @@ function (angular, app, _) {
     };
 
     $scope.remove_panel_from_row = function(row, panel) {
-      if (confirm('Are you sure you want to remove this ' + panel.type + ' panel?')) {
-        row.panels = _.without(row.panels,panel);
-      }
+      $scope.appEvent('confirm-modal', {
+        title: 'Remove panel',
+        text: 'Are you sure you want to remove this panel?',
+        onConfirm: function() {
+          row.panels = _.without(row.panels, panel);
+        }
+      });
     };
 
     $scope.replacePanel = function(newPanel, oldPanel) {
@@ -92,10 +100,6 @@ function (angular, app, _) {
         newPanel.span = oldPanel.span;
         row.panels.splice(index, 0, newPanel);
       });
-    };
-
-    $scope.duplicatePanel = function(panel, row) {
-      $scope.dashboard.duplicatePanel(panel, row || $scope.row);
     };
 
     $scope.reset_panel = function(type) {

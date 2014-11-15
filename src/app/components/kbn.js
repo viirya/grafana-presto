@@ -327,19 +327,17 @@ function($, _, moment) {
         size /= factor;
       }
       if (steps > 0) {
-        scaledDecimals = scaledDecimals + (3 * steps);
+        decimals = scaledDecimals + (3 * steps);
       }
 
-      return kbn.toFixed(size, scaledDecimals, decimals) + extArray[steps];
+      return kbn.toFixed(size, decimals) + extArray[steps];
     };
   };
 
-  kbn.toFixed = function(value, decimals, fallbackDecimals) {
+  kbn.toFixed = function(value, decimals) {
     if (value === null) {
       return "";
     }
-
-    decimals = decimals || fallbackDecimals;
 
     var factor = decimals ? Math.pow(10, decimals) : 1;
     var formatted = String(Math.round(value * factor) / factor);
@@ -459,6 +457,17 @@ function($, _, moment) {
       .toLowerCase()
       .replace(/[^\w ]+/g,'')
       .replace(/ +/g,'-');
+  };
+
+  kbn.exportSeriesListToCsv = function(seriesList) {
+    var text = 'Series;Time;Value\n';
+    _.each(seriesList, function(series) {
+      _.each(series.datapoints, function(dp) {
+        text += series.alias + ';' + new Date(dp[1]).toISOString() + ';' + dp[0] + '\n';
+      });
+    });
+    var blob = new Blob([text], { type: "text/csv;charset=utf-8" });
+    window.saveAs(blob, 'grafana_data_export.csv');
   };
 
   kbn.stringToJsRegex = function(str) {

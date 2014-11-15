@@ -8,8 +8,12 @@ function (angular, $, _) {
 
   angular
     .module('grafana.directives')
-    .directive('panelMenu', function($compile) {
-      var linkTemplate = '<span class="panel-title drag-handle pointer">{{panel.title | interpolateTemplateVars}}</span>';
+    .directive('panelMenu', function($compile, linkSrv) {
+      var linkTemplate =
+          '<span class="panel-title drag-handle pointer">' +
+            '<span class="panel-title-text drag-handle">{{panel.title | interpolateTemplateVars}}</span>' +
+            '<span class="panel-links-icon"></span>' +
+          '</span>';
 
       function createMenuTemplate($scope) {
         var template = '<div class="panel-menu small">';
@@ -22,6 +26,7 @@ function (angular, $, _) {
         template += '</div>';
 
         template += '<div class="panel-menu-row">';
+        template += '<a class="panel-menu-link" gf-dropdown="extendedMenu"><i class="icon-th-list"></i></a>';
 
         _.each($scope.panelMeta.menu, function(item) {
           template += '<a class="panel-menu-link" ';
@@ -37,17 +42,35 @@ function (angular, $, _) {
         return template;
       }
 
+      function getExtendedMenu($scope) {
+        var menu = angular.copy($scope.panelMeta.extendedMenu);
+
+        if ($scope.panel.links) {
+          _.each($scope.panel.links, function(link) {
+            var info = linkSrv.getPanelLinkAnchorInfo(link);
+            menu.push({text: info.title, href: info.href, target: info.target });
+          });
+        }
+
+        return menu;
+      }
+
       return {
         restrict: 'A',
         link: function($scope, elem) {
           var $link = $(linkTemplate);
           var $panelContainer = elem.parents(".panel-container");
-          var menuWidth = $scope.panelMeta.menu.length === 5 ? 246 : 201;
+          var menuWidth = $scope.panelMeta.menu.length === 4 ? 236 : 191;
           var menuScope = null;
           var timeout = null;
           var $menu = null;
 
           elem.append($link);
+
+          $scope.$watchCollection('panel.links', function(newValue) {
+            var showIcon = (newValue ? newValue.length > 0 : false) && $scope.panel.title !== '';
+            $link.toggleClass('has-panel-links', showIcon);
+          });
 
           function dismiss(time) {
             clearTimeout(timeout);
@@ -100,6 +123,7 @@ function (angular, $, _) {
             });
 
             menuScope = $scope.$new();
+            menuScope.extendedMenu = getExtendedMenu($scope);
 
             $('.panel-menu').remove();
             elem.append($menu);

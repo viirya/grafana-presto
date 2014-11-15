@@ -51,9 +51,8 @@ function (angular, _, $) {
     DashboardViewState.prototype.getQueryStringState = function() {
       var state = $location.search();
       state.panelId = parseInt(state.panelId) || null;
-      state.fullscreen = state.fullscreen ? true : false;
-      state.edit = state.edit ? true : false;
-
+      state.fullscreen = state.fullscreen ? true : null;
+      state.edit =  (state.edit === "true" || state.edit === true) || null;
       return state;
     };
 
@@ -61,7 +60,6 @@ function (angular, _, $) {
       var urlState = _.clone(this.state);
       urlState.fullscreen = this.state.fullscreen ? true : null,
       urlState.edit = this.state.edit ? true : null;
-
       return urlState;
     };
 
@@ -71,7 +69,8 @@ function (angular, _, $) {
 
       if (!this.state.fullscreen) {
         this.state.panelId = null;
-        this.state.edit = false;
+        this.state.fullscreen = null;
+        this.state.edit = null;
       }
 
       if (!skipUrlSync) {
