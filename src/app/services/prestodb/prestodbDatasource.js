@@ -84,6 +84,12 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
  
         query += " order by " + prestoIntervalState + " asc";
 
+        // run with Presto approximate aggregation
+
+        if (target.approx) {
+          query += ' APPROXIMATE AT 95.0 CONFIDENCE';
+        }
+
         // replace templated variables
         query = templateSrv.replace(query);
 

@@ -167,6 +167,21 @@
 						</ul>
 					</li>
 
+ 					<li class="dropdown">
+						<a class="grafana-target-segment pointer" data-toggle="dropdown" bs-tooltip="'Choose approximate mode'" data-placement="right">
+							<span ng-show="target.approx">
+								approximate
+							</span>
+							<span ng-show="!target.approx">
+								normal
+							</span>
+					  </a>
+						<ul class="dropdown-menu">
+							<li><a ng-click="target.approx = false">normal</a></li>
+							<li><a ng-click="target.approx = true">approximate</a></li>
+						</ul>
+					</li>
+ 
         </ul>
 
         <div class="clearfix"></div>
