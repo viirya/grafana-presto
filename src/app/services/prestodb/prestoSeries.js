@@ -14,6 +14,7 @@ function (_, moment) {
     this.seriesName = options.alias;
     this.annotation = options.annotation;
     this.intervalSeconds = options.intervalSeconds;
+    this.approximate = options.approximate;
   }
 
   var p = PrestoSeries.prototype;
@@ -32,6 +33,10 @@ function (_, moment) {
     var output = [];
     var self = this;
     var i;
+
+    if (self.approximate) {
+      self.seriesList = self.parseApproximateSeriesList(self.seriesList);
+    }
 
     _.each([self.seriesList], function(series) {
       var timeCol = 0;
@@ -131,6 +136,38 @@ function (_, moment) {
     }
 
     return name;
+  };
+
+  p.parseApproximateSeriesList = function(seriesList) {
+    var self = this;
+
+    _.each([seriesList], function (series) {
+
+      var valueCol = 1;
+
+      // find value column
+      _.each(series.Columns, function (column, index) {
+        if (column.name !== 'time' && column.name !== 'sequence_number' && column.name !== self.groupByField) {
+          valueCol = index;
+        }
+      });
+
+      var parsedPoints = _.map(series.Data, function(point) {
+        var res = point[valueCol].match(/(.*)\+\/-/);
+        if (res) {
+          point[valueCol] = parseInt(res[1]);  
+        } else {
+          point[valueCol] = 0;
+        }
+        return point;
+      });
+
+      series.Data = parsedPoints;
+
+    });
+
+    return seriesList;
+ 
   };
 
   return PrestoSeries;

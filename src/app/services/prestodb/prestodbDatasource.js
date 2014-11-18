@@ -98,7 +98,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
         var alias = target.alias ? templateSrv.replace(target.alias) : '';
 
         var handleResponse = _.partial(handlePrestoQueryResponse, alias,
-          queryBuilder.groupByField, this.sinceDate, this.pseudonow, intervalSeconds);
+          queryBuilder.groupByField, this.sinceDate, this.pseudonow, intervalSeconds, target.approx);
         return this._seriesQuery(query).then(handleResponse);
 
       }, this);
@@ -378,7 +378,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       });
     };
 
-    function handlePrestoQueryResponse(alias, groupByField, sinceDate, pseudoNowDate, intervalSeconds, seriesList) {
+    function handlePrestoQueryResponse(alias, groupByField, sinceDate, pseudoNowDate, intervalSeconds, approx, seriesList) {
       var prestoSeries = new PrestoSeries({
         seriesList: seriesList,
         alias: alias,
@@ -386,6 +386,7 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
         sinceDate: sinceDate,
         pseudoNowDate: pseudoNowDate,
         intervalSeconds: intervalSeconds,
+        approximate: approx,
       });
 
       return prestoSeries.getTimeSeries();
