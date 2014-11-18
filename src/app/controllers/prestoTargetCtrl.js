@@ -16,7 +16,7 @@ function (angular) {
       target.function = target.function || 'count';
       target.column = target.column || 'value';
 
-      target.approx = false;
+      target.approx = target.approx || false;
 
       // backward compatible correction of schema
       if (target.condition_value) {
