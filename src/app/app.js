@@ -64,7 +64,7 @@ function (angular, $, _, appLevelRequire, config) {
   var apps_deps = [
     'ngRoute',
     '$strap.directives',
-    'ngDragDrop',
+    'ang-drag-drop',
     'grafana',
     'pasvaz.bindonce'
   ];
