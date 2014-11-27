@@ -49,6 +49,9 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       }
 
       this.localGrafanaDB = new LocalStorageDatasource();
+
+      this.miColumnFrom = datasource.mi_col_from;
+      this.miColumnTo = datasource.mi_col_to;
     }
 
     PrestoDatasource.prototype.query = function(options) {
@@ -129,7 +132,12 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
         interpolated = '/' + interpolated + '/';
       }
 
-      return this._seriesQuery('describe ' + seriesName).then(function (data) {
+      seriesName = seriesName + "_mi";
+
+      var sql = "select " + this.miColumnTo + ", mi from " + seriesName + " where " + 
+      this.miColumnFrom + " = '" + this.timeField + "'";
+
+      return this._seriesQuery(sql).then(function (data) {
         if (!data || !("Data" in data)) {
           return [];
         }

@@ -28,6 +28,8 @@ define(['settings'], function(Settings) {
           pseudonow: '2014-04-30 23:00:00',
           timezone: 8,
           grafanaDB: true,
+          mi_col_from: "col_from",
+          mi_col_to: "col_to",
         },
       },
       */
