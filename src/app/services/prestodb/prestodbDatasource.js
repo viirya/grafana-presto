@@ -129,11 +129,11 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
         interpolated = '/' + interpolated + '/';
       }
 
-      return this._seriesQuery('select * from ' + interpolated + ' limit 1').then(function(data) {
-        if (!data) {
+      return this._seriesQuery('describe ' + seriesName).then(function (data) {
+        if (!data || !("Data" in data)) {
           return [];
         }
-        return data[0].columns;
+        return _.map(data.Data, function(column) { return column[0]; } );
       });
     };
 
