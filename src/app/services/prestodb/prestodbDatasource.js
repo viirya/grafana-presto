@@ -141,7 +141,8 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
         if (!data || !("Data" in data)) {
           return [];
         }
-        return _.map(data.Data, function(column) { return column[0]; } );
+        return _.map(_.sortBy(data.Data, function(column) { return parseFloat(column[1]); } ).reverse(),
+          function(column) { return column[0]; } );
       });
     };
 
