@@ -147,20 +147,10 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
 
     PrestoDatasource.prototype.listSeries = function() {
       return this._seriesQuery('show tables').then(function(data) {
-        if (!data || data.length === 0) {
+        if (!data || !("Data" in data)) {
           return [];
         }
-        // prestodb >= 1.8
-        if (data[0].points.length > 0) {
-          return _.map(data[0].points, function(point) {
-            return point[1];
-          });
-        }
-        else { // prestodb <= 1.7
-          return _.map(data, function(series) {
-            return series.name; // prestodb < 1.7
-          });
-        }
+        return _.map(data.Data, function(column) { return column[0]; } );
       });
     };
 
