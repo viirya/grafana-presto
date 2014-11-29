@@ -153,12 +153,16 @@ function (_, moment) {
       });
 
       var parsedPoints = _.map(series.Data, function(point) {
-        var res = point[valueCol].match(/(.*)\+\/-/);
-        if (res) {
-          if (res[1].match(/\./)) {  
-            point[valueCol] = parseFloat(res[1]);  
+        if (point[valueCol]) {
+          var res = point[valueCol].match(/(.*)\+\/-/);
+          if (res) {
+            if (res[1].match(/\./)) {  
+              point[valueCol] = parseFloat(res[1]);  
+            } else {
+              point[valueCol] = parseInt(res[1]);
+            }
           } else {
-            point[valueCol] = parseInt(res[1]);
+            point[valueCol] = 0;
           }
         } else {
           point[valueCol] = 0;
