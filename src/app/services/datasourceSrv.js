@@ -2,11 +2,6 @@ define([
   'angular',
   'lodash',
   'config',
-  './graphite/graphiteDatasource',
-  './influxdb/influxdbDatasource',
-  './prestodb/prestodbDatasource',
-  './opentsdb/opentsdbDatasource',
-  './elasticsearch/es-datasource',
 ],
 function (angular, _, config) {
   'use strict';

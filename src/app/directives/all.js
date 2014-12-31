@@ -12,12 +12,9 @@ define([
   './spectrumPicker',
   './bootstrap-tagsinput',
   './bodyClass',
-  './addGraphiteFunc',
-  './graphiteFuncEditor',
   './templateParamSelector',
   './graphiteSegment',
   './grafanaVersionCheck',
   './prestodbFuncEditor',
   './dropdown.typeahead',
-  './influxdbFuncEditor'
 ], function () {});
