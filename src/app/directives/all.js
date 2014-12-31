@@ -15,6 +15,5 @@ define([
   './templateParamSelector',
   './graphiteSegment',
   './grafanaVersionCheck',
-  './prestodbFuncEditor',
   './dropdown.typeahead',
 ], function () {});

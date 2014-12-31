@@ -8,7 +8,7 @@ function (angular) {
 
   var seriesList = null;
 
-  module.controller('PrestoTargetCtrl', function($scope, $timeout) {
+  module.controller('PrestoQueryCtrl', function($scope, $timeout) {
 
     $scope.init = function() {
       var target = $scope.target;

@@ -4,7 +4,9 @@ define([
   'kbn',
   'moment',
   './prestoSeries',
-  './prestoQueryBuilder',
+  './queryBuilder',
+  './queryCtrl',
+  './funcEditor',
   './localGrafanaDB'
 ],
 function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
@@ -16,7 +18,6 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
 
     function PrestoDatasource(datasource) {
       this.type = 'prestoDB';
-      this.editorSrc = 'app/partials/prestodb/editor.html';
       this.urls = datasource.urls;
       this.username = datasource.username;
       this.password = datasource.password;
@@ -31,7 +32,9 @@ function (angular, _, kbn, moment, PrestoSeries, PrestoQueryBuilder) {
       this.grafanaDB = datasource.grafanaDB;
       this.supportAnnotations = true;
       this.supportMetrics = true;
-      this.annotationEditorSrc = 'app/partials/prestodb/annotation_editor.html';
+
+      this.editorSrc = 'app/features/prestodb/partials/query.editor.html';
+      this.annotationEditorSrc = 'app/features/prestodb/partials/annotations.editor.html';
 
       this.timeField = datasource.time_field;
       this.key = datasource.key;
