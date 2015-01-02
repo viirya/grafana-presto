@@ -1,17 +1,9 @@
 define([
   './grafanaCtrl',
-  './dashboardCtrl',
-  './dashboardNavCtrl',
-  './row',
-  './submenuCtrl',
   './pulldown',
   './search',
   './metricKeys',
   './graphiteImport',
-  './playlistCtrl',
   './inspectCtrl',
-  './annotationsEditorCtrl',
-  './templateEditorCtrl',
-  './sharePanelCtrl',
   './jsonEditorCtrl',
 ], function () {});

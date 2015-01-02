@@ -49,8 +49,7 @@ function (angular, $, _, appLevelRequire, config) {
     return module;
   };
 
-  app.config(function ($routeProvider, $controllerProvider, $compileProvider, $filterProvider, $httpProvider, $provide) {
-
+  app.config(function ($routeProvider, $controllerProvider, $compileProvider, $filterProvider, $provide) {
     $routeProvider.otherwise({ redirectTo: config.default_route });
     $httpProvider.defaults.headers.post = { 'Content-Type' : 'application/x-www-form-urlencoded' };
 
@@ -88,7 +87,7 @@ function (angular, $, _, appLevelRequire, config) {
     'directives/all',
     'filters/all',
     'components/partials',
-    'routes/all',
+    'routes/standalone/default',
   ];
 
   _.each(config.plugins.dependencies, function(dep) {
