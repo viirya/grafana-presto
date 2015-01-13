@@ -418,7 +418,19 @@ function (angular, $, kbn, moment, _, GraphTooltip) {
           case 'bps':
             url += '&yUnitSystem=si';
             break;
+          case 'Bps':
+            url += '&yUnitSystem=si';
+            break;
           case 'short':
+            url += '&yUnitSystem=si';
+            break;
+          case 'joule':
+            url += '&yUnitSystem=si';
+            break;
+          case 'watt':
+            url += '&yUnitSystem=si';
+            break;
+          case 'ev':
             url += '&yUnitSystem=si';
             break;
           case 'none':

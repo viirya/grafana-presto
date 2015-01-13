@@ -122,7 +122,6 @@
 .grafana-segment-list {
   list-style: none;
   margin: 0;
-  margin-right: 90px;
   >li {
     float: left;
   }
@@ -168,6 +167,9 @@
     padding: 8px 15px;
   }
 
+  &.last {
+    border-right: none;
+  }
 }
 
 .grafana-target-segment-icon {
@@ -201,37 +203,6 @@ input[type=text].grafana-function-param-input {
   padding: 0;
 }
 
-.grafana-target-controls {
-  float: right;
-  list-style: none;
-  margin: 0;
-  text-align: right;
-
-  >li {
-    display: inline-block;
-    white-space: nowrap;
-  }
-
-  .fa {
-    position: relative;
-    top: 8px;
-  }
-
-  a {
-    padding: 8px 7px;
-    color: @grafanaTargetColor;
-    font-size: 16px;
-
-    .grafana-target-hidden & {
-      color: @grafanaTargetColorHide;
-    }
-
-    &:hover, &:focus {
-      text-decoration: none;
-    }
-  }
-}
-
 input[type=text].grafana-target-text-input {
   padding: 8px 7px;
   border: none;
@@ -243,12 +214,15 @@ input[type=text].grafana-target-text-input {
   border-right: 1px solid @grafanaTargetSegmentBorder;
 }
 
-input[type=text].grafana-target-segment-input {
+[type=text].grafana-target-segment-input, [type=number].grafana-target-segment-input {
   border: none;
   border-right: 1px solid @grafanaTargetSegmentBorder;
   margin: 0px;
   border-radius: 0;
   padding: 8px 4px;
+  &.last {
+    border-right: none;
+  }
 }
 
 input[type=checkbox].grafana-target-option-checkbox {
@@ -262,6 +236,9 @@ select.grafana-target-segment-input {
   border-radius: 0;
   height: 36px;
   padding: 8px 5px;
+  &.last {
+    border-right: none;
+  }
 }
 
 .grafana-target .dropdown {
@@ -347,6 +324,7 @@ select.grafana-target-segment-input {
   background: inherit;
   border: none;
   color: inherit;
+  padding: 0;
 }
 
 .sp-replacer:hover, .sp-replacer.sp-active {
