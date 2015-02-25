@@ -12,6 +12,12 @@ Note: This is a fork of Grafana with Presto Database support. [Presto](http://pr
 
 ![](http://grafana.org/assets/img/start_page_bg.png)
 
+## Grafana 2.0 News
+Grafana 2.0 with its new awesome backend written in Go is approaching beta.
+The code is available in the [develop](https://github.com/grafana/grafana/tree/develop) branch.
+[This blog post](http://grafana.org/blog/2015/02/10/Grafana-2-Alpha-and-preview.html) contains some news about it as well.
+
+
 ## Features
 ### Graphite Target Editor
 - Graphite target expression parser
