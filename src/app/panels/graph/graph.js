@@ -377,7 +377,7 @@ function (angular, $, kbn, moment, _, GraphTooltip) {
             if (secPerTick <= 45) {
               return "%H:%M:%S";
             }
-            if (secPerTick <= 3600) {
+            if (secPerTick <= 7200) {
               return "%H:%M";
             }
             if (secPerTick <= 80000) {
